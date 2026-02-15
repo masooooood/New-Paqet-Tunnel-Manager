@@ -284,55 +284,52 @@ validate_port() {
     [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]
 }
 
-# Parse ports spec (supports: "443", "80,443", "60000-60700", "60000-60700,443")
-# Output: unique sorted ports, one per line
-expand_port_spec() {
-    local spec="$1"
-    spec="$(echo "$spec" | tr -d '[:space:]')"
-    [ -z "$spec" ] && return 0
+# Clean port list (supports comma-separated ports and ranges like 60000-60070)
+clean_port_list() {
+    local ports="$1"
+    ports=$(echo "$ports" | tr -d ' ')
+    [ -z "$ports" ] && { echo ""; return 0; }
 
     local token a b
-    IFS=',' read -ra tokens <<< "$spec"
+    local -a expanded=()
 
-    # collect -> sort -> uniq
-    for token in "${tokens[@]}"; do
+    IFS=',' read -ra port_array <<< "$ports"
+    for token in "${port_array[@]}"; do
         [ -z "$token" ] && continue
+
         if [[ "$token" =~ ^[0-9]+-[0-9]+$ ]]; then
             a="${token%-*}"
             b="${token#*-}"
+
             if ! validate_port "$a" || ! validate_port "$b" || [ "$a" -gt "$b" ]; then
-                print_warning "Invalid range '$token' removed"
+                print_warning "Invalid port range '$token' removed from list"
                 continue
             fi
-            local p
-            for ((p=a; p<=b; p++)); do
-                echo "$p"
-            done
-        elif [[ "$token" =~ ^[0-9]+$ ]]; then
-            if validate_port "$token"; then
-                echo "$token"
-            else
-                print_warning "Invalid port '$token' removed"
-            fi
-        else
-            print_warning "Invalid token '$token' removed"
-        fi
-    done | awk '!seen[$0]++' | sort -n
-}
 
-# Split multi-tunnel groups.
-# Input example: "60000-60700;26000-26070;443,80"
-# Output: one group per line
-split_port_groups() {
-    local spec="$1"
-    # allow ; or | as separator
-    spec="${spec//|/;}"
-    IFS=';' read -ra groups <<< "$spec"
-    local g
-    for g in "${groups[@]}"; do
-        g="$(echo "$g" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-        [ -n "$g" ] && echo "$g"
+            # Safety cap: prevent accidental huge ranges
+            if [ $((b - a + 1)) -gt 5000 ]; then
+                print_warning "Port range '$token' too large (max 5000). Removed from list"
+                continue
+            fi
+
+            for ((p=a; p<=b; p++)); do
+                expanded+=("$p")
+            done
+        elif validate_port "$token"; then
+            expanded+=("$token")
+        else
+            print_warning "Invalid port '$token' removed from list"
+        fi
     done
+
+    if [ ${#expanded[@]} -eq 0 ]; then
+        echo ""
+        return 0
+    fi
+
+    # Unique + sort
+    printf "%s
+" "${expanded[@]}" | awk '!seen[$0]++' | sort -n | paste -sd, -
 }
 
 # Clean config name
@@ -1619,8 +1616,6 @@ configure_client() {
         traffic_type="${traffic_type:-1}"
         
         local forward_entries=()
-        local PORT_GROUPS=()
-        local FORWARD_PROTO="tcp"
         local socks5_entries=()
         local display_ports=""
         local SOCKS5_PORT=""
@@ -1631,59 +1626,55 @@ configure_client() {
             1)
                 echo -e "\n${CYAN}Port Forwarding Configuration${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
-
-                echo -e "${YELLOW}Format examples:${NC}"
-                echo -e "  • Single port: 443"
-                echo -e "  • List: 80,443,8080"
-                echo -e "  • Range: 60000-60700"
-                echo -e "  • Multiple tunnels (split by ';'): 60000-60700;26000-26070;22000-22070"
-                echo ""
-
-                echo -en "${YELLOW}[13/15] Forward Ports / Ranges [default $DEFAULT_V2RAY_PORTS]: ${NC}"
-                read -r forward_spec
-                forward_spec="${forward_spec:-$DEFAULT_V2RAY_PORTS}"
-
-                mapfile -t PORT_GROUPS < <(split_port_groups "$forward_spec")
-                if [ ${#PORT_GROUPS[@]} -eq 0 ]; then
-                    print_error "No valid port spec"
-                    continue
-                fi
-
-                echo -e "\n${CYAN}Protocol Selection (applies to ALL ports in ALL groups)${NC}"
+                
+                echo -en "${YELLOW}[13/15] Forward Ports (comma separated) [default $DEFAULT_V2RAY_PORTS]: ${NC}"
+                read -r forward_ports
+                forward_ports=$(clean_port_list "${forward_ports:-$DEFAULT_V2RAY_PORTS}")
+                [ -z "$forward_ports" ] && { print_error "No valid ports"; continue; }
+                echo -e "[13/15] Forward Ports : ${CYAN}$forward_ports${NC}"
+                
+                echo -e "\n${CYAN}Protocol Selection${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 echo " [1] tcp - TCP only (default)"
                 echo " [2] udp - UDP only"
                 echo " [3] tcp/udp - Both"
                 echo ""
-                read -p "[13/15] Choose protocol [1-3] (default 1): " proto_choice
-                proto_choice="${proto_choice:-1}"
-                case "$proto_choice" in
-                    1) FORWARD_PROTO="tcp" ;;
-                    2) FORWARD_PROTO="udp" ;;
-                    3) FORWARD_PROTO="both" ;;
-                    *) FORWARD_PROTO="tcp" ;;
-                esac
-
-                # Preview (count ports per group)
-                echo -e "\n${CYAN}Port Group Summary${NC}"
-                echo -e "────────────────────────────────────────────────────────────────"
-                local gi=1
-                for gspec in "${PORT_GROUPS[@]}"; do
-                    mapfile -t _ports_preview < <(expand_port_spec "$gspec")
-                    if [ ${#_ports_preview[@]} -eq 0 ]; then
-                        echo -e " ${RED}#${gi}${NC}  ${YELLOW}${gspec}${NC}  →  ${RED}0 ports (invalid)${NC}"
-                    else
-                        local first="${_ports_preview[0]}"
-                        local last="${_ports_preview[-1]}"
-                        echo -e " ${GREEN}#${gi}${NC}  ${YELLOW}${gspec}${NC}  →  ${CYAN}${first}-${last}${NC}  (${#_ports_preview[@]} ports)"
-                    fi
-                    ((gi++))
+                
+                IFS=',' read -ra PORTS <<< "$forward_ports"
+                for p in "${PORTS[@]}"; do
+                    p=$(echo "$p" | tr -d '[:space:]')
+                    echo -en "${YELLOW}Port $p → protocol [1-3] : ${NC}"
+                    read -r proto_choice
+                    proto_choice="${proto_choice:-1}"
+                    
+                    case $proto_choice in
+                        1)
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            display_ports+=" $p (TCP)"
+                            configure_iptables "$p" "tcp"
+                            ;;
+                        2)
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
+                            display_ports+=" $p (UDP)"
+                            configure_iptables "$p" "udp"
+                            ;;
+                        3)
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
+                            display_ports+=" $p (TCP+UDP)"
+                            configure_iptables "$p" "both"
+                            ;;
+                        *)
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            display_ports+=" $p (TCP)"
+                            configure_iptables "$p" "tcp"
+                            ;;
+                    esac
                 done
-
-                echo -e "\n${YELLOW}Note:${NC} If you used multiple groups, the script will create multiple services:"
-                echo -e "      ${CYAN}paqet-${config_name}-g1${NC}, ${CYAN}paqet-${config_name}-g2${NC}, ..."
+                echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports# }${NC}"
                 ;;
-2)
+                
+            2)
                 echo -e "\n${CYAN}SOCKS5 Proxy Configuration${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 
@@ -1738,164 +1729,7 @@ configure_client() {
             install_paqet || continue
         fi
         
-        
-        # Port-range / multi-tunnel support (client)
-        if [ "$traffic_type" = "1" ]; then
-            # If user entered multiple groups, create multiple services automatically
-            if [ ${#PORT_GROUPS[@]} -gt 1 ]; then
-                print_step "Creating ${#PORT_GROUPS[@]} tunnel services from port groups..."
-
-                local created_services=()
-                local gi=1
-
-                for gspec in "${PORT_GROUPS[@]}"; do
-                    mapfile -t PORTS < <(expand_port_spec "$gspec")
-                    if [ ${#PORTS[@]} -eq 0 ]; then
-                        print_warning "Skipping group '$gspec' (no valid ports)"
-                        ((gi++))
-                        continue
-                    fi
-
-                    local cfg_name="${config_name}-g${gi}"
-                    local svc_name="paqet-${cfg_name}"
-
-                    # Build forward entries for this group
-                    local forward_entries_group=()
-                    local p
-                    for p in "${PORTS[@]}"; do
-                        case "$FORWARD_PROTO" in
-                            tcp)
-                                forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                                configure_iptables "$p" "tcp"
-                                ;;
-                            udp)
-                                forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                                configure_iptables "$p" "udp"
-                                ;;
-                            both)
-                                forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                                forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                                configure_iptables "$p" "both"
-                                ;;
-                            *)
-                                forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                                configure_iptables "$p" "tcp"
-                                ;;
-                        esac
-                    done
-
-                    # Write config
-                    {
-                        echo "# Paqet Client Configuration"
-                        echo "role: \"client\""
-                        echo "log:"
-                        echo "  level: \"info\""
-                        echo "forward:"
-                        for entry in "${forward_entries_group[@]}"; do
-                            echo -e "$entry"
-                        done
-
-                        echo "network:"
-                        echo "  interface: \"$NETWORK_INTERFACE\""
-                        echo "  ipv4:"
-                        echo "    addr: \"$LOCAL_IP:0\""
-                        echo "    router_mac: \"$GATEWAY_MAC\""
-                        echo "  tcp:"
-                        echo "    local_flag: [\"PA\"]"
-                        echo "    remote_flag: [\"PA\"]"
-
-                        if [[ -n "$pcap_sockbuf" ]]; then
-                            echo "  pcap:"
-                            echo "    sockbuf: $pcap_sockbuf"
-                        fi
-
-                        echo "server:"
-                        echo "  addr: \"$server_ip:$server_port\""
-                        echo "transport:"
-                        echo "  protocol: \"kcp\""
-
-                        [[ -n "$conn" ]] && echo "  conn: $conn"
-                        [[ -n "$transport_tcpbuf" ]] && echo "  tcpbuf: $transport_tcpbuf"
-                        [[ -n "$transport_udpbuf" ]] && echo "  udpbuf: $transport_udpbuf"
-
-                        echo "  kcp:"
-                        echo "    key: \"$secret_key\""
-
-                        if [ "$mode_name" = "manual" ] && [ -n "$kcp_fragment" ]; then
-                            echo "    mode: \"manual\""
-                            echo "    block: \"$block\""
-                            [[ -n "$mtu" ]] && echo "    mtu: $mtu"
-                            while IFS= read -r line; do
-                                if [[ -n "$line" ]] && ! echo "$line" | grep -q "mode:"; then
-                                    echo "    $line"
-                                fi
-                            done <<< "$kcp_fragment"
-                        else
-                            echo "    mode: \"$mode_name\""
-                            echo "    block: \"$block\""
-                            [[ -n "$mtu" ]] && echo "    mtu: $mtu"
-                        fi
-                    } > "$CONFIG_DIR/${cfg_name}.yaml"
-
-                    create_systemd_service "$cfg_name"
-                    systemctl enable "$svc_name" --now >/dev/null 2>&1
-
-                    if systemctl is-active --quiet "$svc_name"; then
-                        created_services+=("$svc_name")
-                        add_auto_restart_cronjob "$svc_name" "$DEFAULT_AUTO_RESTART_INTERVAL" >/dev/null 2>&1 || true
-                        print_success "Started: $svc_name  (ports: ${PORTS[0]}-${PORTS[-1]} / ${#PORTS[@]} ports)"
-                    else
-                        print_error "Failed to start: $svc_name"
-                        systemctl status "$svc_name" --no-pager -l || true
-                    fi
-
-                    ((gi++))
-                done
-
-                echo -e "\n${GREEN}✅ Multi-tunnel setup completed.${NC}"
-                if [ ${#created_services[@]} -gt 0 ]; then
-                    echo -e "${CYAN}Created services:${NC}"
-                    for s in "${created_services[@]}"; do
-                        echo -e "  - ${GREEN}$s${NC}"
-                    done
-                fi
-                pause
-                return 0
-            fi
-
-            # Single group → build forward_entries (so the rest of the script stays the same)
-            mapfile -t PORTS < <(expand_port_spec "${PORT_GROUPS[0]}")
-            if [ ${#PORTS[@]} -eq 0 ]; then
-                print_error "No valid ports"
-                continue
-            fi
-
-            for p in "${PORTS[@]}"; do
-                case "$FORWARD_PROTO" in
-                    tcp)
-                        forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                        configure_iptables "$p" "tcp"
-                        ;;
-                    udp)
-                        forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                        configure_iptables "$p" "udp"
-                        ;;
-                    both)
-                        forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                        forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                        configure_iptables "$p" "both"
-                        ;;
-                    *)
-                        forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                        configure_iptables "$p" "tcp"
-                        ;;
-                esac
-            done
-
-            display_ports=" ${PORTS[0]}-${PORTS[-1]} (${FORWARD_PROTO}) [${#PORTS[@]} ports]"
-        fi
-
-mkdir -p "$CONFIG_DIR"
+        mkdir -p "$CONFIG_DIR"
         
         # Build client config with proper indentation
         {
