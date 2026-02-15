@@ -160,36 +160,34 @@ pause() {
 show_banner() {
     clear
 
-    MAGENTA='\033[1;35m'
-    CYAN='\033[1;36m'
-    GREEN='\033[1;32m'
-    NC='\033[0m'
-
     echo -e "${MAGENTA}"
-    echo "╔════════════════════════════════════════════════════════════════════╗"
-    echo "║                                                                    ║"
-    echo -e "║   ${CYAN}██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗            ${MAGENTA}║"
-    echo -e "║   ${CYAN}██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝            ${MAGENTA}║"
-    echo -e "║   ${CYAN}██████╔╝███████║██║     █████╔╝ █████╗     ██║               ${MAGENTA}║"
-    echo -e "║   ${CYAN}██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║               ${MAGENTA}║"
-    echo -e "║   ${CYAN}██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║               ${MAGENTA}║"
-    echo -e "║   ${CYAN}╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝               ${MAGENTA}║"
-    echo "║                                                                    ║"
-    echo -e "║        ${GREEN}multi port and server fixed                          ${MAGENTA}║"
-    echo "║                                                                    ║"
-    echo -e "║        ${CYAN}GitHub: https://github.com/masooooood                ${MAGENTA}║"
-    echo "║                                                                    ║"
-    echo "╚════════════════════════════════════════════════════════════════════╝"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                                                              ║"
+
+    echo -e "║   ${CYAN}██████╗  █████╗  ██████╗██╗  ██╗███████╗              ${MAGENTA}║"
+    echo -e "║   ${CYAN}██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝              ${MAGENTA}║"
+    echo -e "║   ${CYAN}██████╔╝███████║██║     █████╔╝ █████╗                ${MAGENTA}║"
+    echo -e "║   ${CYAN}██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝                ${MAGENTA}║"
+    echo -e "║   ${CYAN}██║     ██║  ██║╚██████╗██║  ██╗███████╗              ${MAGENTA}║"
+    echo -e "║   ${CYAN}╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝              ${MAGENTA}║"
+
+    echo "║                                                              ║"
+
+    echo -e "║   ${GREEN}███╗   ███╗██╗   ██╗██╗     ████████╗                ${MAGENTA}║"
+    echo -e "║   ${GREEN}████╗ ████║██║   ██║██║     ╚══██╔══╝                ${MAGENTA}║"
+    echo -e "║   ${GREEN}██╔████╔██║██║   ██║██║        ██║                   ${MAGENTA}║"
+    echo -e "║   ${GREEN}██║╚██╔╝██║██║   ██║██║        ██║                   ${MAGENTA}║"
+    echo -e "║   ${GREEN}██║ ╚═╝ ██║╚██████╔╝███████╗   ██║                   ${MAGENTA}║"
+    echo -e "║   ${GREEN}╚═╝     ╚═╝ ╚═════╝ ╚══════╝   ╚═╝                   ${MAGENTA}║"
+
+    echo "║                                                              ║"
+
+    echo -e "║   ${CYAN}GitHub: https://github.com/masooooood               ${MAGENTA}║"
+    echo "║                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
 
-# Check root
-check_root() {
-    if [[ $EUID -ne 0 ]]; then
-        print_error "This script must be run as root"
-        exit 1
-    fi
-}
 
 # Detect OS
 detect_os() {
