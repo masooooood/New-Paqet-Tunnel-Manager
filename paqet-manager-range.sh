@@ -170,7 +170,7 @@ show_banner() {
     echo "║     ╚═╝     ╚═╝  ╚═╝ ╚══▀▀═╝ ╚══════╝   ╚═╝                  ║"
     echo "║                                                              ║"
     echo "║          Raw Packet Tunnel - multi port and server fixed     ║"
-    echo "║          Manager v${SCRIPT_VERSION}                                       ║"
+    echo "║                                                              ║"
     echo "║                                                              ║"
     echo "║                                                              ║"
     echo "║                                                              ║"    
