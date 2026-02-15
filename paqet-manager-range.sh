@@ -157,62 +157,30 @@ pause() {
 }
 
 # Clear screen and show banner
-show_banner() {
-    clear
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║                                                              ║"
+box_line "${CYAN}"  "██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗"
+box_line "${CYAN}"  "██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝"
+box_line "${CYAN}"  "██████╔╝███████║██║     █████╔╝ █████╗     ██║   "
+box_line "${CYAN}"  "██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║   "
+box_line "${CYAN}"  "██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║   "
+box_line "${CYAN}"  "╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   "
+echo "║                                                              ║"
+box_line "${CYAN}"  "PACKET TUNNEL"
+echo "║                                                              ║"
+box_line "${GREEN}" "███╗   ███╗██╗   ██╗██╗  ████████╗██╗"
+box_line "${GREEN}" "████╗ ████║██║   ██║██║  ╚══██╔══╝██║"
+box_line "${GREEN}" "██╔████╔██║██║   ██║██║     ██║   ██║"
+box_line "${GREEN}" "██║╚██╔╝██║██║   ██║██║     ██║   ██║"
+box_line "${GREEN}" "██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║"
+box_line "${GREEN}" "╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝"
+echo "║                                                              ║"
+box_line "${GREEN}" "MULTI PORT AND SERVER FIXED"
+echo "║                                                              ║"
+box_line "${CYAN}"  "GitHub: https://github.com/masooooood"
+echo "║                                                              ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
 
-    local W=62
-
-    # چاپ خط داخل باکس با وسط‌چین (رنگ اختیاری)
-    box_line() {
-        local color="$1"
-        local text="$2"
-
-        # اگر متن بلندتر از عرض شد، کوتاهش کن
-        local plain="$text"
-        local len=${#plain}
-        if (( len > W )); then
-            plain="${plain:0:W}"
-            len=${#plain}
-        fi
-
-        local left=$(( (W - len) / 2 ))
-        local right=$(( W - len - left ))
-
-        # توجه: padding با طول متن بدون رنگ حساب میشه، پس کج نمی‌شه
-        printf "║%*s%s%s%s%*s║\n" "$left" "" "${color}" "${plain}" "${NC}" "$right" ""
-    }
-
-    echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                                                              ║"
-
-    # PACKET TUNNEL (ASCII) - درست و فیت
-    box_line "${CYAN}" "██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗"
-    box_line "${CYAN}" "██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝"
-    box_line "${CYAN}" "██████╔╝███████║██║     █████╔╝ █████╗     ██║   "
-    box_line "${CYAN}" "██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║   "
-    box_line "${CYAN}" "██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║   "
-    box_line "${CYAN}" "╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   "
-    echo "║                                                              ║"
-    box_line "${CYAN}" "PACKET TUNNEL"
-
-
-    echo "║                                                              ║"
-
-    # MULTI (ASCII) - این یکی «واقعاً MULTI» درست می‌نویسه و کامل فیت میشه
-    box_line "${GREEN}" "███╗   ███╗██╗   ██╗██╗  ████████╗██╗"
-    box_line "${GREEN}" "████╗ ████║██║   ██║██║  ╚══██╔══╝██║"
-    box_line "${GREEN}" "██╔████╔██║██║   ██║██║     ██║   ██║"
-    box_line "${GREEN}" "██║╚██╔╝██║██║   ██║██║     ██║   ██║"
-    box_line "${GREEN}" "██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║"
-    box_line "${GREEN}" "╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝"
-    echo "║                                                              ║"
-    box_line "${GREEN}" "MULTI PORT AND SERVER FIXED"
-
-    echo "║                                                              ║"
-    box_line "${CYAN}"  "GitHub: https://github.com/masooooood"
-    echo "║                                                              ║"
-    echo "╚══════════════════════════════════════════════════════════════╝"
-}
 
 
 # Detect OS
