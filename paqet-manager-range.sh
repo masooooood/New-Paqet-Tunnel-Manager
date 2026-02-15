@@ -1624,21 +1624,29 @@ configure_client() {
         
         case $traffic_type in
             1)
-                                echo -e "\n${CYAN}Protocol Selection${NC}"
+                echo -e "\n${CYAN}Port Forwarding Configuration${NC}"
+                echo -e "────────────────────────────────────────────────────────────────"
+                
+                echo -en "${YELLOW}[13/15] Forward Ports (comma separated) [default $DEFAULT_V2RAY_PORTS]: ${NC}"
+                read -r forward_ports
+                forward_ports=$(clean_port_list "${forward_ports:-$DEFAULT_V2RAY_PORTS}")
+                [ -z "$forward_ports" ] && { print_error "No valid ports"; continue; }
+                echo -e "[13/15] Forward Ports : ${CYAN}$forward_ports${NC}"
+                
+                echo -e "\n${CYAN}Protocol Selection${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 echo " [1] tcp - TCP only (default)"
                 echo " [2] udp - UDP only"
                 echo " [3] tcp/udp - Both"
                 echo ""
-
-                echo -en "${YELLOW}Select protocol for ALL ports [1-3] (default 1): ${NC}"
-                read -r proto_choice
-                proto_choice="${proto_choice:-1}"
-
+                
                 IFS=',' read -ra PORTS <<< "$forward_ports"
                 for p in "${PORTS[@]}"; do
                     p=$(echo "$p" | tr -d '[:space:]')
-
+                    echo -en "${YELLOW}Port $p → protocol [1-3] : ${NC}"
+                    read -r proto_choice
+                    proto_choice="${proto_choice:-1}"
+                    
                     case $proto_choice in
                         1)
                             forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
@@ -1663,9 +1671,7 @@ configure_client() {
                             ;;
                     esac
                 done
-
                 echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports# }${NC}"
-
                 ;;
                 
             2)
