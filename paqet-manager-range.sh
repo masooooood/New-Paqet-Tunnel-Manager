@@ -1633,45 +1633,61 @@ configure_client() {
                 [ -z "$forward_ports" ] && { print_error "No valid ports"; continue; }
                 echo -e "[13/15] Forward Ports : ${CYAN}$forward_ports${NC}"
                 
-                echo -e "\n${CYAN}Protocol Selection${NC}"
+                echo -e "
+${CYAN}Protocol Selection${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 echo " [1] tcp - TCP only (default)"
                 echo " [2] udp - UDP only"
                 echo " [3] tcp/udp - Both"
                 echo ""
-                
+
+                # فقط یکبار برای همه پورت‌ها پروتکل انتخاب می‌شود
+                read -p "[13/15] Choose protocol for ALL ports [1-3] (default 1): " proto_choice_all
+                proto_choice_all="${proto_choice_all:-1}"
+
                 IFS=',' read -ra PORTS <<< "$forward_ports"
                 for p in "${PORTS[@]}"; do
                     p=$(echo "$p" | tr -d '[:space:]')
-                    echo -en "${YELLOW}Port $p → protocol [1-3] : ${NC}"
-                    read -r proto_choice
-                    proto_choice="${proto_choice:-1}"
-                    
-                    case $proto_choice in
+
+                    case $proto_choice_all in
                         1)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                            display_ports+=" $p (TCP)"
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
+    target: \"127.0.0.1:$p\"
+    protocol: \"tcp\"")
                             configure_iptables "$p" "tcp"
                             ;;
                         2)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                            display_ports+=" $p (UDP)"
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
+    target: \"127.0.0.1:$p\"
+    protocol: \"udp\"")
                             configure_iptables "$p" "udp"
                             ;;
                         3)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
-                            display_ports+=" $p (TCP+UDP)"
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
+    target: \"127.0.0.1:$p\"
+    protocol: \"tcp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
+    target: \"127.0.0.1:$p\"
+    protocol: \"udp\"")
                             configure_iptables "$p" "both"
                             ;;
                         *)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
-                            display_ports+=" $p (TCP)"
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
+    target: \"127.0.0.1:$p\"
+    protocol: \"tcp\"")
                             configure_iptables "$p" "tcp"
                             ;;
                     esac
                 done
-                echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports# }${NC}"
+
+                case $proto_choice_all in
+                    1) display_ports="${forward_ports} (TCP)" ;;
+                    2) display_ports="${forward_ports} (UDP)" ;;
+                    3) display_ports="${forward_ports} (TCP+UDP)" ;;
+                    *) display_ports="${forward_ports} (TCP)" ;;
+                esac
+
+                echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports}${NC}"
                 ;;
                 
             2)
