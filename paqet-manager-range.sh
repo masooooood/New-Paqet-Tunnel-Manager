@@ -1619,8 +1619,7 @@ configure_client() {
         traffic_type="${traffic_type:-1}"
         
         local forward_entries=()
-        local -a PORT_GROUPS=()
-        local -a PORT_GROUP_PROTOS=()
+        local PORT_GROUPS=()
         local FORWARD_PROTO="tcp"
         local socks5_entries=()
         local display_ports=""
@@ -1633,83 +1632,56 @@ configure_client() {
                 echo -e "\n${CYAN}Port Forwarding Configuration${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
 
-                echo -e "${YELLOW}Accepted formats:${NC}"
+                echo -e "${YELLOW}Format examples:${NC}"
                 echo -e "  • Single port: 443"
                 echo -e "  • List: 80,443,8080"
-                echo -e "  • Range: 60000-60070"
-                echo -e "  • Mixed: 443,60000-60070,26000"
-                echo ""
-                echo -e "${CYAN}You can create multiple tunnel services.${NC}"
-                echo -e "Enter ports for each tunnel; press Enter on an empty line when finished."
+                echo -e "  • Range: 60000-60700"
+                echo -e "  • Multiple tunnels (split by ';'): 60000-60700;26000-26070;22000-22070"
                 echo ""
 
-                PORT_GROUPS=()
-                PORT_GROUP_PROTOS=()
+                echo -en "${YELLOW}[13/15] Forward Ports / Ranges [default $DEFAULT_V2RAY_PORTS]: ${NC}"
+                read -r forward_spec
+                forward_spec="${forward_spec:-$DEFAULT_V2RAY_PORTS}"
 
-                local t=1
-                while true; do
-                    echo -en "${YELLOW}[13/15] Tunnel #${t} ports (empty to finish): ${NC}"
-                    read -r gspec
+                mapfile -t PORT_GROUPS < <(split_port_groups "$forward_spec")
+                if [ ${#PORT_GROUPS[@]} -eq 0 ]; then
+                    print_error "No valid port spec"
+                    continue
+                fi
 
-                    # finish
-                    if [[ -z "$gspec" ]]; then
-                        if [ ${#PORT_GROUPS[@]} -eq 0 ]; then
-                            print_error "You must enter at least one tunnel."
-                            continue
-                        fi
-                        break
-                    fi
+                echo -e "\n${CYAN}Protocol Selection (applies to ALL ports in ALL groups)${NC}"
+                echo -e "────────────────────────────────────────────────────────────────"
+                echo " [1] tcp - TCP only (default)"
+                echo " [2] udp - UDP only"
+                echo " [3] tcp/udp - Both"
+                echo ""
+                read -p "[13/15] Choose protocol [1-3] (default 1): " proto_choice
+                proto_choice="${proto_choice:-1}"
+                case "$proto_choice" in
+                    1) FORWARD_PROTO="tcp" ;;
+                    2) FORWARD_PROTO="udp" ;;
+                    3) FORWARD_PROTO="both" ;;
+                    *) FORWARD_PROTO="tcp" ;;
+                esac
 
-                    # validate ports
-                    mapfile -t _ports_preview < <(expand_port_spec "$gspec") || true
-                    if [ ${#_ports_preview[@]} -eq 0 ]; then
-                        print_error "Invalid ports for tunnel #${t}. Try again."
-                        continue
-                    fi
-
-                    echo -e "${CYAN}Protocol for Tunnel #${t}:${NC}"
-                    echo " [1] tcp - TCP only (default)"
-                    echo " [2] udp - UDP only"
-                    echo " [3] tcp/udp - Both"
-                    read -r -p "Choose [1-3] (default 1): " proto_choice
-                    proto_choice="${proto_choice:-1}"
-                    case "$proto_choice" in
-                        1) _proto="tcp" ;;
-                        2) _proto="udp" ;;
-                        3) _proto="both" ;;
-                        *) _proto="tcp" ;;
-                    esac
-
-                    PORT_GROUPS+=("$gspec")
-                    PORT_GROUP_PROTOS+=("$_proto")
-
-                    echo -e " ${GREEN}✓${NC} Tunnel #${t}: ${YELLOW}${gspec}${NC}  (${#_ports_preview[@]} ports)  proto=${CYAN}${_proto}${NC}"
-                    ((t++))
-                done
-
-                # set default proto for single-group path
-                FORWARD_PROTO="${PORT_GROUP_PROTOS[0]}"
-
-                echo -e "\n${CYAN}Tunnel Summary${NC}"
+                # Preview (count ports per group)
+                echo -e "\n${CYAN}Port Group Summary${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 local gi=1
                 for gspec in "${PORT_GROUPS[@]}"; do
-                    mapfile -t _ports_preview < <(expand_port_spec "$gspec") || true
-                    local proto="${PORT_GROUP_PROTOS[$((gi-1))]}"
+                    mapfile -t _ports_preview < <(expand_port_spec "$gspec")
                     if [ ${#_ports_preview[@]} -eq 0 ]; then
                         echo -e " ${RED}#${gi}${NC}  ${YELLOW}${gspec}${NC}  →  ${RED}0 ports (invalid)${NC}"
                     else
                         local first="${_ports_preview[0]}"
                         local last="${_ports_preview[-1]}"
-                        echo -e " ${GREEN}#${gi}${NC}  ${YELLOW}${gspec}${NC}  →  ${CYAN}${first}-${last}${NC}  (${#_ports_preview[@]} ports)  proto=${CYAN}${proto}${NC}"
+                        echo -e " ${GREEN}#${gi}${NC}  ${YELLOW}${gspec}${NC}  →  ${CYAN}${first}-${last}${NC}  (${#_ports_preview[@]} ports)"
                     fi
                     ((gi++))
                 done
 
-                if [ ${#PORT_GROUPS[@]} -gt 1 ]; then
-                    echo -e "\n${YELLOW}Info:${NC} The script will create multiple services:"
-                    echo -e "      ${CYAN}paqet-${config_name}-t1${NC}, ${CYAN}paqet-${config_name}-t2${NC}, ..."
-                fi
+                echo -e "\n${YELLOW}Note:${NC} If you used multiple groups, the script will create multiple services:"
+                echo -e "      ${CYAN}paqet-${config_name}-g1${NC}, ${CYAN}paqet-${config_name}-g2${NC}, ..."
                 ;;
 2)
                 echo -e "\n${CYAN}SOCKS5 Proxy Configuration${NC}"
@@ -1784,15 +1756,14 @@ configure_client() {
                         continue
                     fi
 
-                    local cfg_name="${config_name}-t${gi}"
+                    local cfg_name="${config_name}-g${gi}"
                     local svc_name="paqet-${cfg_name}"
 
                     # Build forward entries for this group
                     local forward_entries_group=()
-                    local this_proto="${PORT_GROUP_PROTOS[$((gi-1))]}"
                     local p
                     for p in "${PORTS[@]}"; do
-                        case "$this_proto" in
+                        case "$FORWARD_PROTO" in
                             tcp)
                                 forward_entries_group+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
                                 configure_iptables "$p" "tcp"
