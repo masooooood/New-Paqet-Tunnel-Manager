@@ -156,32 +156,54 @@ pause() {
     read -p "$msg" </dev/tty
 }
 
-# Clear screen and show banner
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                                                              ║"
-box_line "${CYAN}"  "██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗"
-box_line "${CYAN}"  "██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝"
-box_line "${CYAN}"  "██████╔╝███████║██║     █████╔╝ █████╗     ██║   "
-box_line "${CYAN}"  "██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║   "
-box_line "${CYAN}"  "██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║   "
-box_line "${CYAN}"  "╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   "
-echo "║                                                              ║"
-box_line "${CYAN}"  "PACKET TUNNEL"
-echo "║                                                              ║"
-box_line "${GREEN}" "███╗   ███╗██╗   ██╗██╗  ████████╗██╗"
-box_line "${GREEN}" "████╗ ████║██║   ██║██║  ╚══██╔══╝██║"
-box_line "${GREEN}" "██╔████╔██║██║   ██║██║     ██║   ██║"
-box_line "${GREEN}" "██║╚██╔╝██║██║   ██║██║     ██║   ██║"
-box_line "${GREEN}" "██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║"
-box_line "${GREEN}" "╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝"
-echo "║                                                              ║"
-box_line "${GREEN}" "MULTI PORT AND SERVER FIXED"
-echo "║                                                              ║"
-box_line "${CYAN}"  "GitHub: https://github.com/masooooood"
-echo "║                                                              ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+# ================================================
+# BANNER (FIXED)
+# ================================================
 
+box_line() {
+    local color="$1"
+    local text="$2"
+    local W=62
 
+    # متن بلند شد کوتاه می‌کنیم
+    local len=${#text}
+    (( len > W )) && text="${text:0:W}" && len=${#text}
+
+    local left=$(( (W - len) / 2 ))
+    local right=$(( W - len - left ))
+
+    # با printf چاپ می‌کنیم که باکس کج نشه
+    printf "║%*s%b%s%b%*s║\n" "$left" "" "$color" "$text" "$NC" "$right" ""
+}
+
+show_banner() {
+    clear
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                                                              ║"
+
+    box_line "${CYAN}"  "██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗"
+    box_line "${CYAN}"  "██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝"
+    box_line "${CYAN}"  "██████╔╝███████║██║     █████╔╝ █████╗     ██║   "
+    box_line "${CYAN}"  "██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║   "
+    box_line "${CYAN}"  "██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║   "
+    box_line "${CYAN}"  "╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   "
+    echo "║                                                              ║"
+    box_line "${CYAN}"  "PACKET TUNNEL"
+    echo "║                                                              ║"
+
+    box_line "${GREEN}" "███╗   ███╗██╗   ██╗██╗  ████████╗██╗"
+    box_line "${GREEN}" "████╗ ████║██║   ██║██║  ╚══██╔══╝██║"
+    box_line "${GREEN}" "██╔████╔██║██║   ██║██║     ██║   ██║"
+    box_line "${GREEN}" "██║╚██╔╝██║██║   ██║██║     ██║   ██║"
+    box_line "${GREEN}" "██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║"
+    box_line "${GREEN}" "╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝"
+    echo "║                                                              ║"
+    box_line "${GREEN}" "MULTI PORT AND SERVER FIXED"
+    echo "║                                                              ║"
+    box_line "${CYAN}"  "GitHub: https://github.com/masooooood"
+    echo "║                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+}
 
 # Detect OS
 detect_os() {
