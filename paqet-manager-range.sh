@@ -3,8 +3,9 @@
 # Paqet Tunnel Manager
 # Version: 6.0 (Fully Refactored)
 # Raw packet-level tunneling for bypassing network restrictions
-# GitHub: https://github.com/hanselime/paqet
-# Manager GitHub: https://github.com/behzadea12/Paqet-Tunnel-Manager
+# GitHub: https://github.com/masooooood/New-Paqet-Tunnel-Manager
+# Core (Paqet-X): https://github.com/MrAminiDev/Paqet-X-Nulled
+# Manager GitHub: https://github.com/masooooood/New-Paqet-Tunnel-Manager
 #=================================================
 
 # ================================================
@@ -36,8 +37,8 @@ readonly INSTALL_DIR="/opt/paqet"
 readonly BACKUP_DIR="/root/paqet-backups"
 
 # Repositories
-readonly GITHUB_REPO="hanselime/paqet"
-readonly MANAGER_GITHUB_REPO="behzadea12/Paqet-Tunnel-Manager"
+readonly GITHUB_REPO="MrAminiDev/Paqet-X-Nulled"
+readonly MANAGER_GITHUB_REPO="masooooood/New-Paqet-Tunnel-Manager"
 readonly SERVICE_NAME="paqet"
 
 # Kernel optimization settings
@@ -156,53 +157,35 @@ pause() {
     read -p "$msg" </dev/tty
 }
 
-# ================================================
-# BANNER (FIXED)
-# ================================================
-
-box_line() {
-    local color="$1"
-    local text="$2"
-    local W=62
-
-    # متن بلند شد کوتاه می‌کنیم
-    local len=${#text}
-    (( len > W )) && text="${text:0:W}" && len=${#text}
-
-    local left=$(( (W - len) / 2 ))
-    local right=$(( W - len - left ))
-
-    # با printf چاپ می‌کنیم که باکس کج نشه
-    printf "║%*s%b%s%b%*s║\n" "$left" "" "$color" "$text" "$NC" "$right" ""
-}
-
+# Clear screen and show banner
 show_banner() {
     clear
+    echo -e "${MAGENTA}"
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                                                              ║"
-
-    box_line "${CYAN}"  "██████╗  █████╗  ██████╗██╗  ██╗███████╗████████╗"
-    box_line "${CYAN}"  "██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝"
-    box_line "${CYAN}"  "██████╔╝███████║██║     █████╔╝ █████╗     ██║   "
-    box_line "${CYAN}"  "██╔═══╝ ██╔══██║██║     ██╔═██╗ ██╔══╝     ██║   "
-    box_line "${CYAN}"  "██║     ██║  ██║╚██████╗██║  ██╗███████╗   ██║   "
-    box_line "${CYAN}"  "╚═╝     ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   "
+    echo "║     ██████╗  █████╗  ██████╗ ███████╗████████╗               ║"
+    echo "║     ██╔══██╗██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝               ║"
+    echo "║     ██████╔╝███████║██║   ██║█████╗     ██║                  ║"
+    echo "║     ██╔═══╝ ██╔══██║██║▄▄ ██║██╔══╝     ██║                  ║"
+    echo "║     ██║     ██║  ██║╚██████╔╝███████╗   ██║                  ║"
+    echo "║     ╚═╝     ╚═╝  ╚═╝ ╚══▀▀═╝ ╚══════╝   ╚═╝                  ║"
     echo "║                                                              ║"
-    box_line "${CYAN}"  "PACKET TUNNEL"
+    echo "║          Raw Packet Tunnel - Firewall Bypass                 ║"
+    echo "║                                 Manager v${SCRIPT_VERSION}                 ║"
     echo "║                                                              ║"
-
-    box_line "${GREEN}" "███╗   ███╗██╗   ██╗██╗  ████████╗██╗"
-    box_line "${GREEN}" "████╗ ████║██║   ██║██║  ╚══██╔══╝██║"
-    box_line "${GREEN}" "██╔████╔██║██║   ██║██║     ██║   ██║"
-    box_line "${GREEN}" "██║╚██╔╝██║██║   ██║██║     ██║   ██║"
-    box_line "${GREEN}" "██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║"
-    box_line "${GREEN}" "╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝"
-    echo "║                                                              ║"
-    box_line "${GREEN}" "MULTI PORT AND SERVER FIXED"
-    echo "║                                                              ║"
-    box_line "${CYAN}"  "GitHub: https://github.com/masooooood"
+    echo "║          https://t.me/behzad_developer                       ║"
+    echo "║          https://github.com/behzadea12                       ║"    
     echo "║                                                              ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+# Check root
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        print_error "This script must be run as root"
+        exit 1
+    fi
 }
 
 # Detect OS
@@ -484,7 +467,7 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-ExecStart=$BIN_DIR/paqet run -c $CONFIG_DIR/${config_name}.yaml
+ExecStart=$BIN_DIR/Paqet-X run -c $CONFIG_DIR/${config_name}.yaml
 Restart=always
 RestartSec=5
 LimitNOFILE=65535
@@ -1303,7 +1286,7 @@ configure_server() {
         echo -e "\n${CYAN}Applying Configuration${NC}"
         echo -e "────────────────────────────────────────────────────────────────"
         
-        if [ ! -f "$BIN_DIR/paqet" ]; then
+        if [ ! -f "$BIN_DIR/Paqet-X" ]; then
             install_paqet || continue
         fi
         
@@ -1651,61 +1634,57 @@ configure_client() {
                 [ -z "$forward_ports" ] && { print_error "No valid ports"; continue; }
                 echo -e "[13/15] Forward Ports : ${CYAN}$forward_ports${NC}"
                 
-                echo -e "
-${CYAN}Protocol Selection${NC}"
+                echo -e "\n${CYAN}Protocol Selection${NC}"
                 echo -e "────────────────────────────────────────────────────────────────"
                 echo " [1] tcp - TCP only (default)"
                 echo " [2] udp - UDP only"
                 echo " [3] tcp/udp - Both"
                 echo ""
 
-                # فقط یکبار برای همه پورت‌ها پروتکل انتخاب می‌شود
-                read -p "[13/15] Choose protocol for ALL ports [1-3] (default 1): " proto_choice_all
-                proto_choice_all="${proto_choice_all:-1}"
+                # Apply same protocol to all ports (useful for ranges like 60000-60070)
+                echo -e "${YELLOW}Apply one protocol to ALL ports? [1-3, 0=per-port] (default 1): ${NC}"
+                read -r global_proto_choice
+                global_proto_choice="${global_proto_choice:-1}"
+                if [[ ! "$global_proto_choice" =~ ^[0-3]$ ]]; then
+                    global_proto_choice=1
+                fi
 
                 IFS=',' read -ra PORTS <<< "$forward_ports"
                 for p in "${PORTS[@]}"; do
                     p=$(echo "$p" | tr -d '[:space:]')
-
-                    case $proto_choice_all in
+                    if [ "$global_proto_choice" = "0" ]; then
+                        echo -en "${YELLOW}Port $p → protocol [1-3] : ${NC}"
+                        read -r proto_choice
+                        proto_choice="${proto_choice:-1}"
+                    else
+                        proto_choice="$global_proto_choice"
+                    fi
+                    
+                    case $proto_choice in
                         1)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
-    target: \"127.0.0.1:$p\"
-    protocol: \"tcp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            display_ports+=" $p (TCP)"
                             configure_iptables "$p" "tcp"
                             ;;
                         2)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
-    target: \"127.0.0.1:$p\"
-    protocol: \"udp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
+                            display_ports+=" $p (UDP)"
                             configure_iptables "$p" "udp"
                             ;;
                         3)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
-    target: \"127.0.0.1:$p\"
-    protocol: \"tcp\"")
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
-    target: \"127.0.0.1:$p\"
-    protocol: \"udp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"udp\"")
+                            display_ports+=" $p (TCP+UDP)"
                             configure_iptables "$p" "both"
                             ;;
                         *)
-                            forward_entries+=("  - listen: \"0.0.0.0:$p\"
-    target: \"127.0.0.1:$p\"
-    protocol: \"tcp\"")
+                            forward_entries+=("  - listen: \"0.0.0.0:$p\"\n    target: \"127.0.0.1:$p\"\n    protocol: \"tcp\"")
+                            display_ports+=" $p (TCP)"
                             configure_iptables "$p" "tcp"
                             ;;
                     esac
                 done
-
-                case $proto_choice_all in
-                    1) display_ports="${forward_ports} (TCP)" ;;
-                    2) display_ports="${forward_ports} (UDP)" ;;
-                    3) display_ports="${forward_ports} (TCP+UDP)" ;;
-                    *) display_ports="${forward_ports} (TCP)" ;;
-                esac
-
-                echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports}${NC}"
+                echo -e "[13/15] Protocol(s) : ${CYAN}${display_ports# }${NC}"
                 ;;
                 
             2)
@@ -1759,7 +1738,7 @@ ${CYAN}Protocol Selection${NC}"
         echo -e "\n${CYAN}Applying Configuration${NC}"
         echo -e "────────────────────────────────────────────────────────────────"
         
-        if [ ! -f "$BIN_DIR/paqet" ]; then
+        if [ ! -f "$BIN_DIR/Paqet-X" ]; then
             install_paqet || continue
         fi
         
@@ -2337,8 +2316,8 @@ install_paqet() {
     
     # Get current version if installed
     local current_version="Not installed"
-    if [ -f "$BIN_DIR/paqet" ]; then
-        current_version=$("$BIN_DIR/paqet" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
+    if [ -f "$BIN_DIR/Paqet-X" ]; then
+        current_version=$("$BIN_DIR/Paqet-X" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
         [ -z "$current_version" ] && current_version="unknown"
     fi
     
@@ -2555,14 +2534,14 @@ install_paqet() {
     
     if [ -n "$binary_file" ] && [ -f "$binary_file" ]; then
         print_info "Found binary: $(basename "$binary_file")"
-        rm -f "$BIN_DIR/paqet"
-        cp "$binary_file" "$BIN_DIR/paqet"
-        chmod +x "$BIN_DIR/paqet"
+        rm -f "$BIN_DIR/Paqet-X"
+        cp "$binary_file" "$BIN_DIR/Paqet-X"
+        chmod +x "$BIN_DIR/Paqet-X"
         
-        print_success "Paqet installed to $BIN_DIR/paqet"
+        print_success "Paqet installed to $BIN_DIR/Paqet-X"
         
         local new_version
-        new_version=$("$BIN_DIR/paqet" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
+        new_version=$("$BIN_DIR/Paqet-X" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
         if [ -n "$new_version" ]; then
             print_info "Installed version: ${CYAN}$new_version${NC}"
             
@@ -2581,7 +2560,7 @@ install_paqet() {
             print_info "Trying to make file executable: $any_file"
             chmod +x "$any_file"
             if [ -x "$any_file" ] && file "$any_file" | grep -q "executable"; then
-                cp "$any_file" "$BIN_DIR/paqet"
+                cp "$any_file" "$BIN_DIR/Paqet-X"
                 print_success "Paqet installed using alternative method"
             fi
         else
@@ -3423,7 +3402,7 @@ uninstall_paqet() {
     systemctl daemon-reload
     
     print_step "Removing files..."
-    rm -f "$BIN_DIR/paqet" 2>/dev/null || true
+    rm -f "$BIN_DIR/Paqet-X" 2>/dev/null || true
     
     read -p "Remove configuration files? (y/N): " remove_configs
     if [[ "$remove_configs" =~ ^[Yy]$ ]]; then
@@ -3452,10 +3431,10 @@ main_menu() {
         echo -e "${GREEN}║ Main Menu                                                ║${NC}"
         echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}\n"
         
-        if [ -f "$BIN_DIR/paqet" ]; then
+        if [ -f "$BIN_DIR/Paqet-X" ]; then
             echo -e "${GREEN}✅ Paqet is installed${NC}"
             local core_version
-            core_version=$("$BIN_DIR/paqet" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
+            core_version=$("$BIN_DIR/Paqet-X" version 2>/dev/null | grep "^Version:" | head -1 | cut -d':' -f2 | xargs)
             if [ -n "$core_version" ]; then
                 echo -e "   ${GREEN}└─ Version: ${CYAN}$core_version${NC}"
             fi
